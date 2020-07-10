@@ -2,7 +2,7 @@ from django.db import models
 
 class User(models.Model):
     nickname           = models.CharField(max_length=50, unique = True)
-    email              = models.CharField(max_length=200)
+    email              = models.EmailField(max_length=200, null = True)
     thumbnail_image    = models.CharField(max_length=200, null = True)
     created_at         = models.DateTimeField(auto_now_add = True)
     is_host            = models.BooleanField()
