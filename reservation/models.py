@@ -6,6 +6,7 @@ class Reservation(models.Model):
     order_status = models.ForeignKey('OrderStatus', on_delete = models.SET_NULL, null = True)
     check_in = models.DateField()
     check_out = models.DateField()
+    guests = models.IntegerField()
     one_night_price = models.DecimalField(max_digits = 10, decimal_places = 2)
     service_fee = models.DecimalField(max_digits = 10, decimal_places = 2)
     occupancy_taxes = models.DecimalField(max_digits = 10, decimal_places = 2)
@@ -27,7 +28,8 @@ class Review(models.Model):
     check_in_score = models.IntegerField()
     cleanliness_score = models.IntegerField()
     accuracy_score = models.IntegerField()
-    location_scroe = models.IntegerField()
+    location_score = models.IntegerField()
+    average_score = models.DecimalField(max_digits = 3, decimal_places = 2)
     created_at = models.DateTimeField(auto_now_add = True)
     content = models.TextField()
 
