@@ -1,8 +1,22 @@
+import json
+
+
 from django.views import View
-from django.http  import JsonResponse
+from django.http            import HttpResponse, JsonResponse
+from django.core.paginator  import Paginator, EmptyPage, PageNotAnInteger
 
-from .models      import Stay
-
+from stay.models    import (
+    Stay,
+    Bedroom, 
+    Image, 
+    MoreStay,
+    BedroomBedType,
+    BedType,
+    Tag,
+    HouseType,
+    BuildingType,
+    BuildingHouseType,
+)  
 def get_related_stay(stay_list):
     stay_info = [
         {
@@ -73,3 +87,65 @@ class StayDetailView(View):
                 status = 200
             )
         return JsonResponse({"message":"ROOM DOES NOT EXIST"}, status = 400)
+
+
+class ListView(View):
+    def get(self, request):
+        filters = {}
+
+        stay_type = request.GET.get("stay_type", None)
+        price     = request.GET.get("price", None)
+        guests    = request.GET.get("guests", None)
+        location  = request.GET.get("location", None)
+
+        type_list = ["전체","개인실","객실","다인실"]
+        if stay_type:
+            if stay_type in type_list:
+                filters["building_house__house_type__name"] = stay_type
+            else:
+                return JsonResponse({"message": "invalid stay_type"}, status=404)
+
+        if price:
+            p = price.split("~")
+            minimum = p[0]
+            maximum = p[1]
+            filters['price__gt'] = minimum
+            filters['price__lt'] = maximum
+        if guests:
+            filters['capacity__gte'] = guests
+        if location:
+            filters["address__contains"] = location
+    
+        all_stays = Stay.objects.filter(**filters)
+        stay_list =[{
+            "house_id"              : stay.id,
+            "house_name"            : stay.title,
+            "house_images"          : [image.image_link for image in stay.image_set.all()],
+            "house_address"         : stay.address,
+            "house_type"            : stay.sub_title[stay.sub_title.index("하는")+3:],
+            "house_capacity"        : stay.capacity,
+            "house_num_of_bedroom"  : stay.bedroom_count,
+            "house_num_of_bed"      : sum([count["bed_count"] for count in stay.bedroombedtype_set.values("bed_count")]),
+            "house_num_of_bathroom" : stay.bathroom_count,
+            "house_rating"          : 5.0,
+            "house_superhost"       : stay.host.is_superhost,
+            "latitude"              : stay.latitude,
+            "longitude"             : stay.longitude,
+            "price"                 : stay.price,
+        }for stay in all_stays]
+
+        page = request.GET.get("page", 1)
+        paginator = Paginator(stay_list, 15)
+
+        try:
+            stays = paginator.page(page)
+        except PageNotAnInteger:
+            stays = paginator.page(1)
+        except EmptyPage:
+            stays = paginator.page(paginator.num_pages)
+
+        page_stay = []
+        for index in range(stays.start_index()-1, stays.end_index()):
+            if stay_list:
+                page_stay.append(stay_list[index])
+        return JsonResponse({"stay_list": page_stay}, status=200)
