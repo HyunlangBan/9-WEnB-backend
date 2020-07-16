@@ -1,10 +1,11 @@
 import json
 import jwt
 import requests
-from django.views  import View
-from user.models   import User
-from django.http   import JsonResponse
-from wenb.settings import SECRET_KEY, ALGORITHM
+from django.views   import View
+from user.models    import User
+from django.http    import JsonResponse
+from wenb.settings  import SECRET_KEY, ALGORITHM
+from user.decorator import login_check
 
 class KakaoSignInView(View):
     def get(self, request):

@@ -1,5 +1,5 @@
 from django.urls import path
-from user.views import KakaoSignInView
+from user.views import KakaoSignInView, WishListView
 
 urlpatterns = [
     path('/signin/kakao', KakaoSignInView.as_view()),
