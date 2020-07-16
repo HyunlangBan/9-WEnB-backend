@@ -1,13 +1,39 @@
+import jwt
 import json
-from django.test import TestCase
-from django.test import Client
+from django.test   import TransactionTestCase
+from django.test   import Client
 from unittest.mock import patch
-from user.models import User
+from user.models   import (
+    User, 
+    Host, 
+    WishList
+)
+from stay.models   import (
+    Stay,
+    Tag,
+    BuildingHouseType,
+    BuildingType,
+    HouseType,
+    Image
+)
+from wenb.settings import (
+    SECRET_KEY, 
+    ALGORITHM
+)
 
-class KakaoSignInTest(TestCase):
+token = jwt.encode({'user_id': 1}, SECRET_KEY, algorithm = ALGORITHM).decode('utf-8')
+
+class KakaoSignInTest(TransactionTestCase):
     def setUp(self):
-        User.objects.create(id=1, nickname = 'test_user', thumbnail_image = 'https://interactive-examples.mdn.mozilla.net/media/examples/grapefruit-slice-332-332.jpg', is_host = False, email = 'test@email.com', kakao_id = 12345)
-
+        User.objects.create(
+                id              = 1,
+                nickname        = 'test_user',
+                thumbnail_image = 'https://interactive-examples.mdn.mozilla.net/media/examples/grapefruit-slice-332-332.jpg',
+                is_host         = False,
+                email           = 'test@email.com',
+                kakao_id        = 12345
+                )
+       
     def tearDown(self):
         User.objects.all().delete()
 
@@ -17,17 +43,21 @@ class KakaoSignInTest(TestCase):
             class UserInfo:
                 def json(self):
                     user_info  = {
-                        'id': 12345,
-                        'properties': {'nickname': 'test_user', 'thumbnail_image': 'https://interactive-examples.mdn.mozilla.net/media/examples/grapefruit-slice-332-332.jpg'},
-                        'kakao_account': {'email': 'test@email.com'}
+                        'id'           : 12345,
+                        'properties'   : {
+                            'nickname'       : 'test_user', 
+                            'thumbnail_image': 'https://interactive-examples.mdn.mozilla.net/media/examples/grapefruit-slice-332-332.jpg'
+                            },
+                        'kakao_account': {
+                            'email': 'test@email.com'
+                            }
                     }
                     return user_info
 
-            user_profile = UserInfo()
-            mocked_get.return_value = user_profile 
-            
-            client = Client()
-            response = client.get('/user/signin/kakao')
+            user_profile            = UserInfo()
+            mocked_get.return_value = user_profile
+            client                  = Client()
+            response                = client.get('/user/signin/kakao')
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.json()['token'])
 
@@ -37,40 +67,47 @@ class KakaoSignInTest(TestCase):
             class UserInfo:
                 def json(self):
                     user_info  = {
-                        'id': 678910,
-                        'properties': {'nickname': 'new_user', 'thumbnail_image': 'https://interactive-examples.mdn.mozilla.net/media/examples/grapefruit-slice-332-332.jpg'},
-                        'kakao_account': {'email': 'new_user@email.com'}
+                        'id'          : 678910,
+                        'properties'  : {
+                            'nickname'       : 'new_user', 
+                            'thumbnail_image': 'https://interactive-examples.mdn.mozilla.net/media/examples/grapefruit-slice-332-332.jpg'
+                            },
+                        'kakao_account': {
+                            'email': 'new_user@email.com'
+                            }
                     }
                     return user_info
 
-            user_profile = UserInfo()
-            mocked_get.return_value = user_profile 
-
-            client = Client()
-            response = client.get('/user/signin/kakao')
+            user_profile            = UserInfo()
+            mocked_get.return_value = user_profile
+            client                  = Client()
+            response                = client.get('/user/signin/kakao')
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.json()['token'])
 
-    def test_kakao_signin_404_error(self):
+    def test_kakao_signin_error(self):
         with patch('user.views.requests.get') as mocked_get:
 
             class UserInfo:
                 def json(self):
                     user_info  = {
-                        'kakao-id': 12345,
-                        'properties': {'nickname': 'test_user', 'thumbnail_image': 'https://interactive-examples.mdn.mozilla.net/media/examples/grapefruit-slice-332-332.jpg'},
-                        'kakao_account': {'email': 'test@email.com'}
+                        'kakao-id'     : 12345,
+                        'properties'   : {
+                            'nickname'       : 'test_user', 
+                            'thumbnail_image': 'https://interactive-examples.mdn.mozilla.net/media/examples/grapefruit-slice-332-332.jpg'},
+                        'kakao_account': {
+                            'email': 'test@email.com'
+                            }
                     }
                     return user_info
 
-            user_profile = UserInfo()
-            mocked_get.return_value = user_profile 
-            
-            client = Client()
+            user_profile            = UserInfo()
+            mocked_get.return_value = user_profile
+            client                  = Client()
             response = client.get('/user/signin')
             self.assertEqual(response.status_code, 404)
-
-class WishListTest(TestCase):
+        
+class WishListTest(TransactionTestCase):
     def setUp(self):
         Tag.objects.create(id=1, title="Title1", detail="detail1")
         Host.objects.create(id=1, description="Host1", is_superhost=False)
@@ -104,16 +141,40 @@ class WishListTest(TestCase):
                 host           = Host.objects.get(id = 1),
                 building_house = BuildingHouseType(id = 1)
                 )
-
+        Image.objects.create(
+                id         = 1,
+                image_link = 'https://a0.muscache.com/im/pictures/d35945f7-c4de-4e07-a885-c6f145f21875.jpg?aki_policy = large',
+                stay_id    = 1
+                )
+        Image.objects.create(
+                id         = 2,
+                image_link = 'https://a0.muscache.com/im/pictures/cd5fa781-a07d-4cc6-88ba-8069fd719050.jpg?aki_policy = large',
+                stay_id    = 1
+                )
+        Image.objects.create(
+                id         = 3,
+                image_link = 'https://a0.muscache.com/im/pictures/6f518377-cbd8-4506-b767-705eb708421d.jpg?aki_policy = large',
+                stay_id    = 1
+                )
+         
     def tearDown(self):
         User.objects.all().delete()
         Stay.objects.all().delete()
+        WishList.objects.all().delete()
 
     def test_wishlist_post_success(self):
         client   = Client()
         header   = {'HTTP_AUTHORIZATION': token}
         response = client.post('/user/wishlist', json.dumps({'stay_id': 1}), **header, content_type = 'application/json')
         self.assertEqual(response.status_code, 200)
+
+    def test_wishlist_post_duplicated_wishitem(self):
+        client   = Client()
+        header   = {'HTTP_AUTHORIZATION': token}
+        response = client.post('/user/wishlist', json.dumps({'stay_id': 1}), **header, content_type = 'application/json')
+        response = client.post('/user/wishlist', json.dumps({'stay_id': 1}), **header, content_type = 'application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['message'], 'DUPLICATED_WISHITEM')
 
     def test_wishlist_post_invalid_key(self):
         client   = Client()

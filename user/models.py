@@ -19,6 +19,7 @@ class WishList(models.Model):
 
     class Meta:
         db_table = 'wish_lists'
+        unique_together = ('user', 'stay')
 
 class Host(models.Model):
     description    = models.TextField()

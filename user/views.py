@@ -1,10 +1,15 @@
 import json
 import jwt
 import requests
-from django.views  import View
-from user.models   import User
-from django.http   import JsonResponse
-from wenb.settings import SECRET_KEY, ALGORITHM
+from functools      import reduce
+from django.views   import View
+from user.models    import User
+from django.http    import JsonResponse
+from django.db      import IntegrityError
+from user.decorator import login_check
+from stay.models    import Stay
+from user.models    import WishList
+from wenb.settings  import SECRET_KEY, ALGORITHM
 
 class KakaoSignInView(View):
     def get(self, request):
@@ -38,6 +43,9 @@ class WishListView(View):
             return JsonResponse( {'message': 'SUCCESS'}, status = 200 )
         except KeyError:
             return JsonResponse( {'message': 'INAVLID_KEYS'}, status = 400)
+        except IntegrityError:
+            return JsonResponse( {'message': 'DUPLICATED_WISHITEM'}, status = 400 )
+
     @login_check
     def get(self, request):
         user              = request.user
@@ -46,6 +54,6 @@ class WishListView(View):
             {
                 'title': wishlist.stay.title,
                 'image': wishlist.stay.image_set.first().image_link,
-                'address': reduce(lambda x,y: x+y, wishlisg.stay.address.split(',')[:2])
+                'address': reduce(lambda x,y: x+y, wishlist.stay.address.split(',')[:2])
             } for wishlist in wishlists_objects ]
-        return JsonResponse( { 'wishlist': wishlists }, status = 200 )             
+        return JsonResponse( { 'wishlist': wishlists }, status = 200 ) 
