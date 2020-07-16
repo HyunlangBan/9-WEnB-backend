@@ -2,9 +2,14 @@ import json
 import requests
 from time               import strptime
 from enum               import Enum
+
 from django.views       import View
-from django.http        import JsonResponse
 from django.db.models   import Avg
+from django.http        import (
+    HttpResponse, 
+    JsonResponse
+)
+
 from stay.models        import Stay
 from user.models        import User
 from reservation.models import (
@@ -13,6 +18,12 @@ from reservation.models import (
     Reservation
 )
 from user.decorator     import login_check
+from datetime           import date, datetime
+from user.models        import (
+    User,
+    WishList,
+    Host,
+)
 
 class ReservationStatus(Enum):
     PROCESSING        = 1
@@ -121,3 +132,26 @@ class ReservationView(View):
 
         except Reservation.DoesNotExist:
             return JsonResponse( {'message': 'INVALID_RESERVATION_ID'}, status = 400 )
+
+class ReservationView(View):
+    @login_check
+    def get(self, request):
+        user = User.objects.prefetch_related("reservation").get(id=request.user.id)
+        current_date = datetime.today().strftime('%Y-%m-%d')
+        state = request.GET.get("tab", None)
+
+        reservation_states = {
+            "이전 예약": "check_out__lte",
+            "예정된 예약": "check_in__gte"
+        }
+        if state in reservation_states:
+            curr_state = reservation_states[state]
+            reservation_list = [{
+            "name" : reservation.stay.title,
+            "location" : reservation.stay.address,
+            "stay_date" : str(reservation.check_in.month) + "월 " + str(reservation.check_in.day) + "일 - "+ str(reservation.check_out.month) + "월 " + str(reservation.check_out.day) + "일",
+            }for reservation in user.reservation.filter(curr_state = current_date)]
+        
+            return JsonResponse({"stay_list": reservation_list}, status=200)
+            
+        return JsonResponse({"message": "invalid tab"}, status=404)
