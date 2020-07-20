@@ -133,7 +133,7 @@ class ReservationView(View):
         except Reservation.DoesNotExist:
             return JsonResponse( {'message': 'INVALID_RESERVATION_ID'}, status = 400 )
 
-class ReservationView(View):
+class ReservationListView(View):
     @login_check
     def get(self, request):
         user = User.objects.prefetch_related("reservation").get(id=request.user.id)
